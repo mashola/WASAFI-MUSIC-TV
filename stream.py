@@ -3,42 +3,40 @@ import subprocess
 import time
 
 # --- CONFIGURATION ---
-# Replace with your token or make the repo Public
-HF_TOKEN = "YOUR_HF_TOKEN" 
-
-AUDIO_URL = f"https://huggingface.co/datasets/MASHOLA/YOUTUBE/resolve/main/MUSIC/WASAFI%20MUSIC%20RADIO.wav?download=true&token={HF_TOKEN}"
-IMAGE_URL = f"https://huggingface.co/datasets/MASHOLA/YOUTUBE/resolve/main/IMAGES/WASAFI%20MUSIC%20RADIO.png?download=true&token={HF_TOKEN}"
+# IMPORTANT: Ensure your HF repo is PUBLIC or add your token to these URLs
+AUDIO_URL = "https://huggingface.co/datasets/MASHOLA/YOUTUBE/resolve/main/MUSIC/WASAFI%20MUSIC%20RADIO.wav?download=true"
+IMAGE_URL = "https://huggingface.co/datasets/MASHOLA/YOUTUBE/resolve/main/IMAGES/WASAFI%20MUSIC%20RADIO.png?download=true"
 
 STREAM_KEY = "3zy9-9xek-e8vu-ef3z-c77u"
 STREAM_URL = "rtmp://a.rtmp.youtube.com/live2"
 DESTINATION = f"{STREAM_URL}/{STREAM_KEY}"
 
 def start_stream():
-    # Streamlined command for lower CPU usage
     cmd = [
         'ffmpeg',
-        '-re',                         # Read input at native frame rate
-        '-loop', '1',                  # Loop the static image
-        '-i', IMAGE_URL,
-        '-i', AUDIO_URL,
-        '-c:v', 'libx264',             # Video codec
-        '-preset', 'ultrafast',        # Use 'ultrafast' to save GitHub CPU
-        '-tune', 'stillimage',         # Optimization for static images
-        '-pix_fmt', 'yuv420p',         # Required for YouTube compatibility
-        '-c:a', 'aac',                 # Audio codec
-        '-b:a', '128k',                # Audio bitrate
-        '-shortest',                   # End stream if audio stops (though we loop)
+        '-re',
+        '-loop', '1', '-i', IMAGE_URL,          # Loops image
+        '-stream_loop', '-1', '-i', AUDIO_URL,  # LOOPS AUDIO FOREVER (-1)
+        '-map', '0:v:0',
+        '-map', '1:a:0',
+        '-c:v', 'libx264', 
+        '-preset', 'ultrafast', 
+        '-tune', 'stillimage',
+        '-pix_fmt', 'yuv420p',
+        '-c:a', 'aac', 
+        '-b:a', '128k', 
+        '-ar', '44100',
         '-f', 'flv', 
         DESTINATION
     ]
 
     while True:
-        print(f"Starting Lite Stream: {time.ctime()}")
+        print(f"Stream started/restarted at: {time.ctime()}")
         try:
-            # We use 'stream_loop -1' logic inside the loop or let the script restart
+            # This will run until the GitHub 6-hour limit kills it
             subprocess.run(cmd, check=True)
-        except subprocess.CalledProcessError as e:
-            print(f"Stream paused. Restarting in 5 seconds...")
+        except subprocess.CalledProcessError:
+            print("Connection lost. Retrying in 5 seconds...")
             time.sleep(5)
 
 if __name__ == "__main__":
