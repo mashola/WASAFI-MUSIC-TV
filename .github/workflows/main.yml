@@ -1,21 +1,20 @@
-name: 24/7 Video Streamer
+name: 24/7 Music Radio Stream
 on:
   schedule:
-    - cron: '0 */6 * * *' # Auto-restarts every 6 hours
-  workflow_dispatch:      # Allows you to start it manually
+    - cron: '0 */6 * * *' # Restarts every 6 hours
+  workflow_dispatch:      # Manual start button
 
 jobs:
   stream:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Install dependencies
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install FFmpeg
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
-          pip install huggingface_hub
-      - name: Start Stream
-        env:
-          STREAM_URL: ${{ secrets.STREAM_URL }}
-          STREAM_KEY: ${{ secrets.STREAM_KEY }}
+
+      - name: Run Streamer
         run: python stream.py
