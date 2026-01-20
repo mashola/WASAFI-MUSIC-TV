@@ -1,14 +1,14 @@
-name: 24/7 Music Radio Stream
+name: 24-7 Infinite Stream
 on:
   schedule:
-    - cron: '0 */6 * * *' # Restarts every 6 hours
-  workflow_dispatch:      # Manual start button
+    - cron: '0 */6 * * *' # Triggers every 6 hours
+  workflow_dispatch:      # Manual Start button
 
 jobs:
   stream:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Install FFmpeg
@@ -16,5 +16,5 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ffmpeg
 
-      - name: Run Streamer
+      - name: Run Stream
         run: python stream.py
