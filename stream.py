@@ -1,55 +1,44 @@
-import os, time, subprocess
-from huggingface_hub import HfFileSystem
+import os
+import subprocess
+import time
 
-# --- CONFIG ---
-REPO_ID = "MASHOLA/YOUTUBE"
-EXTENSIONS = (".mp4", ".mkv", ".mov", ".ts")
-IGNORE_LIST = ["GOSPEL", "Loops"]
+# --- CONFIGURATION ---
+AUDIO_URL = "https://huggingface.co/datasets/MASHOLA/YOUTUBE/resolve/main/MUSIC/WASAFI%20MUSIC%20RADIO.wav?download=true"
+IMAGE_URL = "https://huggingface.co/datasets/MASHOLA/YOUTUBE/resolve/main/IMAGES/WASAFI%20MUSIC%20RADIO.png?download=true"
+STREAM_KEY = "3zy9-9xek-e8vu-ef3z-c77u"
+STREAM_URL = "rtmp://a.rtmp.youtube.com/live2"
 
-# Get secrets
-STREAM_URL = os.getenv("STREAM_URL", "")
-STREAM_KEY = os.getenv("STREAM_KEY", "")
-# Ensure there is a slash between URL and Key
-DESTINATION = f"{STREAM_URL.rstrip('/')}/{STREAM_KEY.lstrip('/')}"
+DESTINATION = f"{STREAM_URL}/{STREAM_KEY}"
 
-fs = HfFileSystem()
+def start_stream():
+    # FFmpeg Command Breakdown:
+    # 1. -loop 1 -i IMAGE: Loops the static image
+    # 2. -i AUDIO: The live audio source
+    # 3. showwavespic: Creates the spectrum visualizer
+    # 4. filter_complex: Merges image and visualizer with 10% transparency (alpha 0.1)
+    
+    cmd = [
+        'ffmpeg',
+        '-re',
+        '-loop', '1', '-i', IMAGE_URL,
+        '-i', AUDIO_URL,
+        '-filter_complex', 
+        "[1:a]showwaves=s=1280x200:mode=line:colors=white@0.1[v_spec];" +  # 10% transparency (@0.1)
+        "[0:v][v_spec]overlay=0:H-h:format=auto,format=yuv420p[outv]",
+        '-map', '[outv]',
+        '-map', '1:a',
+        '-c:v', 'libx264', '-preset', 'veryfast', '-b:v', '2500k',
+        '-c:a', 'aac', '-b:a', '128k',
+        '-f', 'flv', DESTINATION
+    ]
 
-def get_playlist():
-    print(f"Checking for videos in {REPO_ID}...")
-    try:
-        all_files = fs.ls(f"datasets/{REPO_ID}", recursive=True, detail=False)
-        valid_urls = []
-        for f in sorted(all_files):
-            if not f.lower().endswith(EXTENSIONS): continue
-            if any(word.upper() in f.upper() for word in IGNORE_LIST): continue
-            
-            clean_path = f.replace(f"datasets/{REPO_ID}/", "")
-            url = f"https://huggingface.co/datasets/{REPO_ID}/resolve/main/{clean_path}"
-            valid_urls.append(url)
-        return valid_urls
-    except Exception as e:
-        print(f"!!! Error scanning HF: {e}")
-        return []
+    while True:
+        print(f"Starting Stream: {time.ctime()}")
+        try:
+            subprocess.run(cmd, check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"Stream interrupted: {e}. Restarting in 5 seconds...")
+            time.sleep(5)
 
-while True:
-    playlist = get_playlist()
-    if not playlist:
-        print("No videos found. Waiting 60s...")
-        time.sleep(60)
-        continue
-
-    print(f"Found {len(playlist)} videos. Starting stream...")
-
-    for url in playlist:
-        print(f"Playing: {url}")
-        # Added -nostdin to prevent GitHub Action hang
-        # Added -loglevel info to see what's happening
-        cmd = [
-            'ffmpeg', '-re', '-nostdin', '-i', url,
-            '-c', 'copy', '-f', 'flv', '-loglevel', 'info', DESTINATION
-        ]
-        
-        process = subprocess.run(cmd)
-        if process.returncode != 0:
-            print(f"FFmpeg stopped with error code {process.returncode}")
-            time.sleep(5) # Brief pause before next video
+if __name__ == "__main__":
+    start_stream()
