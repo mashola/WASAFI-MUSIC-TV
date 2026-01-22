@@ -1,32 +1,44 @@
-name: 24-7 Music Stream
+name: 24/7 Video Stream
+
 on:
   schedule:
-    - cron: '0 */6 * * *'
-  workflow_dispatch:
+    - cron: '0 */6 * * *' # Restarts every 6 hours
+  workflow_dispatch:      # Allows you to start it manually
 
 jobs:
   stream:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Install FFmpeg
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
 
-      - name: Download Files from Hugging Face
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      - name: Install Dependencies
         run: |
-          # Download Image
-          curl -L -H "Authorization: Bearer $HF_TOKEN" \
-          "https://huggingface.co/datasets/MASHOLA/YOUTUBE/resolve/main/IMAGES/WASAFI%20MUSIC%20RADIO.png" \
-          -o video_bg.png
-          
-          # Download Audio
-          curl -L -H "Authorization: Bearer $HF_TOKEN" \
-          "https://huggingface.co/datasets/MASHOLA/YOUTUBE/resolve/main/MUSIC/WASAFI%20MUSIC%20RADIO.wav" \
-          -o audio_track.wav
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          pip install requests
 
-      - name: Start Stream
-        run: python stream.py
+      - name: Restore Stream State
+        uses: actions/cache@v3
+        with:
+          path: state.txt
+          key: stream-state-${{ github.run_id }}
+          restore-keys: |
+            stream-state-
+
+      - name: Run Streamer
+        env:
+          STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY }}
+        run: python main.py
+
+      - name: Save Stream State
+        if: always()
+        uses: actions/cache@v3
+        with:
+          path: state.txt
+          key: stream-state-${{ github.run_id }}
