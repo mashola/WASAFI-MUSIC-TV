@@ -3,7 +3,7 @@ name: 24/7 Video Stream
 on:
   schedule:
     - cron: '0 */6 * * *' # Restarts every 6 hours
-  workflow_dispatch:      # Allows you to start it manually
+  workflow_dispatch:      # Allows manual start
 
 jobs:
   stream:
