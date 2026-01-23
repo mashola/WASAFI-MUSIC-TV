@@ -6,8 +6,7 @@ import requests
 # --- CONFIGURATION ---
 # Replace these with your actual MP4 video links from Hugging Face
 VIDEO_LINKS = [
-    "https://huggingface.co/datasets/MASHOLA/YOUTUBE/resolve/main/VIDEOS/WASAFI%20MUSIC%20TV.mp4?download=true",
-    " "
+    "https://huggingface.co/datasets/MASHOLA/YOUTUBE/resolve/main/VIDEOS/WASAFI%20MUSIC%20TV.mp4?download=true"
 ]
 
 STREAM_URL = "rtmp://a.rtmp.youtube.com/live2/"
